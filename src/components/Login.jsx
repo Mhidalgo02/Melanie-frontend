@@ -8,11 +8,6 @@ export default function Login({ onSuccess, onError }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!username || !password) {
-      onError('Please fill in all fields.')
-      return
-    }
-
     setLoading(true)
     try {
       await login(username, password)
@@ -25,35 +20,13 @@ export default function Login({ onSuccess, onError }) {
   }
 
   return (
-    <div className="login-card">
-      <h2>Account Login</h2>
-      <form onSubmit={handleSubmit} autoComplete="off">
-        <div className="form-group">
-          <label>Username</label>
-          <input
-            type="text"
-            autoComplete="off"
-            className="form-control"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Password</label>
-          <input
-            type="password"
-            autoComplete="new-password"
-            className="form-control"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        <button type="submit" className="btn primary" disabled={loading}>
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
-      </form>
-    </div>
+    <form className="card login" onSubmit={handleSubmit}>
+      <h2>Login</h2>
+      <label>Username</label>
+      <input value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />
+      <label>Password</label>
+      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      <button className="btn" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
+    </form>
   )
 }

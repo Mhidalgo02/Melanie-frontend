@@ -1,109 +1,73 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createProduct, updateProduct, errorMessage } from '../api'
 
 export default function ProductForm({ product, onDone, onCancel }) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [price, setPrice] = useState('')
-  const [quantity, setQuantity] = useState('0')
-  const [loading, setLoading] = useState(false)
-  const isEditing = !!product
+  const editing = !!product
+  const [form, setForm] = useState({
+    product_name: product?.product_name ?? '',
+    description: product?.description ?? '',
+    price: product?.price ?? '',
+    quantity: product?.quantity ?? '',
+  })
+  const [error, setError] = useState('')
+  const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    if (product) {
-      // product from the API likely uses product_name; fall back to name just in case
-      setName(product.product_name || product.name || '')
-      setDescription(product.description || '')
-      setPrice(product.price ?? '')
-      setQuantity(String(product.quantity ?? 0))
-    }
-  }, [product])
+  const change = (e) => setForm({ ...form, [e.target.name]: e.target.value })
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!name.trim() || price === '' || quantity === '') {
-      alert('Please fill out all required fields.')
-      return
+    setError('')
+
+    // Quick checks before calling the API (the API validates again)
+    if (!form.product_name.trim()) return setError('Product name is required.')
+    if (form.price === '' || Number(form.price) < 0) return setError('Price must be 0 or higher.')
+    if (form.quantity === '' || !Number.isInteger(Number(form.quantity)) || Number(form.quantity) < 0)
+      return setError('Quantity must be a whole number, 0 or higher.')
+
+    const payload = {
+      product_name: form.product_name.trim(),
+      description: form.description.trim(),
+      price: Number(form.price),
+      quantity: Number(form.quantity),
     }
 
-    setLoading(true)
+    setSaving(true)
     try {
-      const payload = {
-        product_name: name.trim(),
-        description: description.trim(),
-        price: parseFloat(price),
-        quantity: parseInt(quantity, 10),
-      }
-      if (isEditing) {
+      if (editing) {
         await updateProduct(product.id, payload)
-        onDone('Product updated successfully.')
+        onDone('Product updated.')
       } else {
         await createProduct(payload)
-        onDone('Product created successfully.')
+        onDone('Product added.')
       }
     } catch (err) {
-      alert(errorMessage(err))
+      setError(errorMessage(err))
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
   return (
-    <div className="form-card">
-      <h2>{isEditing ? 'Modify Product' : 'Add New Product'}</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Product Name</label>
-          <input
-            type="text"
-            className="form-control"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Description</label>
-          <textarea
-            className="form-control"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Price ($)</label>
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            className="form-control"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        <div className="form-group">
-          <label>Quantity</label>
-          <input
-            type="number"
-            step="1"
-            min="0"
-            className="form-control"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            disabled={loading}
-          />
-        </div>
-        <div className="form-actions">
-          <button type="submit" className="btn primary" disabled={loading}>
-            {loading ? 'Saving...' : 'Save Product'}
-          </button>
-          <button type="button" className="btn secondary" onClick={onCancel} disabled={loading}>
-            Cancel
-          </button>
-        </div>
-      </form>
-    </div>
+    <form className="card" onSubmit={handleSubmit}>
+      <h2>{editing ? 'Edit Product' : 'Add Product'}</h2>
+      {error && <div className="alert error">{error}</div>}
+
+      <label>Product Name</label>
+      <input name="product_name" value={form.product_name} onChange={change} maxLength={100} />
+
+      <label>Description</label>
+      <textarea name="description" value={form.description} onChange={change} rows={3} />
+
+      <label>Price</label>
+      <input name="price" type="number" step="0.01" min="0" value={form.price} onChange={change} />
+
+      <label>Quantity</label>
+      <input name="quantity" type="number" step="1" min="0" value={form.quantity} onChange={change} />
+
+      <div className="row">
+        <button className="btn" disabled={saving}>{saving ? 'Saving...' : editing ? 'Update' : 'Save'}</button>
+        <button type="button" className="btn secondary" onClick={onCancel}>Cancel</button>
+      </div>
+    </form>
   )
 }
